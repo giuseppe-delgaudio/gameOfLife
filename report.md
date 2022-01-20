@@ -11,31 +11,37 @@
 
 <br>
 
-Lo scopo del progetto è quello di eseguire Game Of life in parallelo in modo da ottenere un incremento di performance che verranno analizzate in seguito, per tale scopo è stato utilizzato il protocollo MPI e nello specifico la sua implementazione OpenMPI
+Lo scopo del progetto è quello di eseguire Game Of life in parallelo in modo da ottenere un incremento di performance che verranno analizzate in seguito in [analisi delle prestazioni](#analisi-prestazioni).
 
-La soluzione presentata rappresenta la matrice di gioco come un vettore, e distribuisce il lavoro per righe.  
+Per tale scopo è stato utilizzato il protocollo MPI e nello specifico la sua implementazione OpenMPI
 
-Una volta inizializzata una matrice di partenza ed inserite un numero di glider scelti dall'utente, il processore root inizializza la matrice *totalGame* e la suddivide per righe che verranno distribuite tra tutti i processori( incluso il root), la size locale del problema è data dalla divisione *nRow/nProc* e l'eventuale resto viene suddiviso tra tutti i processori.  
+Tale soluzione rappresenta la matrice di gioco come un vettore, e distribuisce il lavoro per righe.  
+
+Una volta inizializzata una matrice di partenza ed inseriti un numero di glider scelti dall'utente, il processore root inizializza la matrice *totalGame* e la suddivide per righe che verranno distribuite tra tutti i processori( incluso il root).  
+
+La size locale del problema è data dalla divisione (*nRow/nProc*) * *ncols* e l'eventuale resto viene suddiviso tra tutti i processori.  
 
 Una volta suddivise le righe tra i vari processori, il programma inizia la computazione delle generazioni.  
 
 Per ogni generazione vengono eseguite le seguenti fasi:
 
-- ricevo riga fantasma superiore e/o inferiore ( non bloccante )
+- Ricevo riga fantasma superiore e/o inferiore ( non bloccante );
 
-- invio riga fantasma superiore e/o inferiore ( non bloccante )
+- Invio riga fantasma superiore e/o inferiore ( non bloccante );
 
-- eseguo la computazione di tutte le righe non interessate da quelle fantasma
+- Eseguo la computazione di tutte le righe non interessate da quelle fantasma;
 
-- attendo ricezione righe fantasma ( bloccante )
+- Attendo ricezione righe fantasma ( bloccante );
 
-- completo computazione con righe interessate dalle righe fantasma
+- Completo computazione con righe interessate dalle righe fantasma;
 
-- sincronizzo con altri processori
+- Sincronizzo con altri processori.
 
 Al termine della computazione delle generazioni, tutte le matrice locali vengono riunite nel processore root dando vita alla matrice *totalGame* finale.  
 
-Tale matrice, insieme a quella iniziale, può essere stampata su console, su file HTML, oppure su entrambi in base al parametro iniziale, per i dettagli consulatare il paragrafo [Esecuzione](#esecuzione--)
+Tale matrice, insieme a quella iniziale, può essere stampata su prompt, su file HTML, oppure su entrambi in base al parametro iniziale.  
+
+Per i dettagli consulatare il paragrafo [Esecuzione](#esecuzione--)
 
 <br>
 
@@ -44,7 +50,7 @@ Tale matrice, insieme a quella iniziale, può essere stampata su console, su fil
 
 <br>
 
-Il processore root dopo aver inizializzato la matrice iniziale, calcola il numero di righe da inviare ad ogni processore, e calcola, se presente il resto da distribuire tra tutti i processori, aumentando il *count* di uno ad ogni processore e decrementando il resto ad ogni passaggio.
+Il processore root dopo aver inizializzato la matrice iniziale, calcola il numero di righe da inviare ad ogni processore, e calcola, se presente, il resto da distribuire tra tutti i processori, aumentando il *count* di uno ad ogni processore e decrementando il resto ad ogni passaggio.
 
 ```c
 // Numero di righe da processare
@@ -82,11 +88,11 @@ MPI_Scatterv(&totalGame_0[0], count , displ , MPI_CHAR , &localGame[0] , local_n
 vengono inoltre inizializzati i vettori *displ* e *count* rispettivamente per il displacement e il sendCount da utilizzare per la distribuzione delle righe con la ***Scatterv***, mentre la ***Scatter*** distribuisce a tutti i processori il numero di righe da elaborare.
 
 Il core di tutta la soluzione è rappresentata dalla "posizione" che ogni processore assume all'interno del *communicator* ***MPI_COMM_WORLD*** e il modo in cui vengono gestite le righe condivise( fantasma ), il comportamento del processore è dato dal rank ovvero: 
-- ***rank 0*** : il processore è il primo, e deve inviare e ricevere solo da *proc+1* avendo solo una riga fantasma condivisa con il proc. successivo. 
+- ***rank 0*** : Il processore è il primo, e deve inviare e ricevere solo da *proc+1* avendo solo una riga fantasma condivisa con il proc. successivo; 
   
-- ***0<rank<Nproc-1*** : il processore è centrale, riceve ed invia da *proc+1* e *proc-1* le righe condivise.
+- ***0<rank<Nproc-1*** : Il processore è centrale, riceve ed invia da *proc+1* e *proc-1* le righe condivise;
   
-- ***rank Nproc-1*** : il processore è l'ultimo deve inviare e ricevere solo da *proc-1* avendo solo una riga fantasma condivisa con il proc. precedente.
+- ***rank Nproc-1*** : Il processore è l'ultimo deve inviare e ricevere solo da *proc-1* avendo solo una riga fantasma condivisa con il proc. precedente.
  
 ```c
 for( i = 0 ; i<gen ; i++ )
@@ -115,7 +121,9 @@ memcpy(localGame,newGen,local_num);
 }
 ```
 
-nel codice si può notare la classificazione dei processori in base al rank, e la sincronizzazione con ***MPI_Barrier*** tra generazioni, ***memcpy*** viene utilizzato per copiare la matrice *newgen* all'interno della matrice *localGame* così da riutilizzarla per la generazione successiva.
+Nel codice si può notare la classificazione dei processori in base al rank, e la sincronizzazione con ***MPI_Barrier*** tra generazioni.  
+
+ ***memcpy*** viene utilizzato per copiare la matrice *newgen* all'interno della matrice *localGame* così da riutilizzarla per la generazione successiva.
 
 Qui di seguito alcuni dettagli implementativi con [esempio di esecuzione processore centrale](#-esecuzione-tipo-di-un-processore-centrale), e [dettagli sulle funzioni fondamentali](#-funzioni-fondamentali-).  
 
@@ -288,13 +296,17 @@ Tutti i test sono stati valutati per 100 generazioni e con l'inserimento di 150 
 
 <br>
 
-### Strong Scalability (Amdhal law) ###
+### Strong scalability (Amdhal law) ###
 
 <br>
 
 La strong scalability è dominata dalla legge di amdhal, essa pone un limite superiore allo speedup.
 
-![Legge di Amdhal](asset/amdhal.jpg)
+<br>
+
+### ***Speedup = 1/ ( s + p/n )  = T(1,size)/ T(n ,size)*** ###
+
+<br>
 
 Di seguito i risultati ottenuti delle misurazioni ottenute variando solamente il numero di processori.
 
@@ -343,6 +355,150 @@ Si possono notare dei valori molto vicini ai risultati ideali avendo speedup alt
 
 Con carichi bassi ***1000\*1000*** la tendenza della curva di speedup sembra assestarsi, questo è da ritenersi normale dato un basso carico e un aumento dell'overhead di comunicazione dovuto all'incremento dei processori.  
 
-Le percentuali di codice sequenziale e codice parallelo sono da ritenersi in target con i risultati sperati, eccetto i casi limite di cui sopra, infatti la percentuale di codice sequenziale ottenuta, mediamente non supera il 2% e questo secondo Amdhal limiterebbe lo speedup a 500 ^2^  
+E' da considerarsi inoltre che le Amdhal non tiene conto dell' overhead, a questo è da imputarsi un decremento dello speedup rispetto al caso ideale.
+
+Le percentuali di codice sequenziale e codice parallelo sono da ritenersi in target con i risultati sperati, eccetto i casi limite di cui sopra, infatti la percentuale di codice sequenziale ottenuta, mediamente non supera il 2% e questo secondo Amdhal limiterebbe lo speedup a 500.  
+
+![limiteAmdhal](asset/formula-1.jpg)
+
+<br>
+
+### Weak scalability (Gustafson law) ###
+
+<br>
+
+La weak scalability è dominata dalla legge di Gustafson, essa mette in relazione la dimensione del problema con il numero di processori, infatti lo speedup ottenuto è detto anche scaled-speedup.  
+
+
+<br>
+
+### ***Speedup scalato = s + p x N = N( T(1,size) ) / T( N , N * size )*** ###
+
+<br>
+
+Di seguito i risultati ottenuti variando la dimensione del problema in funzione del numero di processori.  
+
+| Scalabilità debole |           |           |           |           |
+|:------------------:|:---------:|:---------:|:---------:|:---------:|
+|                    | *1000\*1000* | *2000\*1000* | *4000\*1000* | *8000\*1000* |
+| Tempo(s)           | 4,65      | 4,68      | 5,02      | 6,00      |
+|            Speedup | 1         | 1,99      | 3,71      | 6,20      |
+|         Efficienza | 1         | 0,995     | 0,927     | 0,775     |
+|                    |           |           |           |           |
+|                    | *1000\*1000* | *1000\*2000* | *1000\*4000* | *1000\*8000* |
+| Tempo(s)           | 4,65      | 4,74      | 5,32      | 7,72      |
+|            Speedup | 1         | 1,96      | 3,50      | 4,82      |
+|         Efficienza | 1         | 0,982     | 0,875     | 0,603     |
+|                    |           |           |           |           |
+|          SP.Ideale | 1         | 2         | 4         | 8         |
+| Ef. Ideale         | 1         | 1         | 1         | 1         |
+|                    |           |           |           |           |
+|                    | *P1*        | *P2*        | *P4*        | *P8*        |
+
+<br>
+
+Applicando la legge sopra indicata sono state calcolate le percentuali di programma eseguito in modo sequenziale e parallelo al variare dei processori e della size del problema.  
+
+<br>
+
+| Gustafson |       |           |       |           |       |
+|-----------|-------|-----------|-------|-----------|-------|
+| *2000\*1000* |       | *4000\*1000* |       | *8000\*1000* |       |
+| S         | P     | S         | P     | S         | P     |
+| 1,0%      | 99,0% | 9,7%      | 90,3% | 25,7%     | 74,3% |
+|           |       |           |       |           |       |
+| *1000\*2000* |       | *1000\*4000* |       | *1000\*8000* |       |
+| S         | P     | S         | P     | S         | P     |
+| 3,7%      | 96,3% | 16,7%     | 83,3% | 45,4%     | 54,6% |
+|           |       |           |       |           |       |
+| *P2*         |       | *P4*         |       | *P8*         |       |
+
+Di seguito anche i grafici di speedup ed efficienza
+
+<br>
+
+![speedup debole](asset/ScalabilitàDebole.png)
+
+<br>
+
+![efficienza debole](asset/EfficienzaScalabilitàDebole.png)
+
+<br>
+
+#### Valutazioni scalabilità debole ####
+
+I risultati ottenuti valutano il comportamento dell'algoritmo in funzione dell'aumento del numero di processori, e scalando con esso il carico dei processori.  
+
+Il carico da eseguire complessivo è stato moltiplicato per il numero di processori che esegue, scalando in una sola dimensione sia per righe sia per colonne.   
+
+In entrambi i casi come da grafici sopra proposti la parte sequenziale aumenta all'aumentare dei processori, nel caso di scalabilita su righe l'aumento è meno drastico poichè avendo per ogni processore la stessa size(*1000\*1000*) si aggiunge solo l'overhead dovuto a sincronizzazione e comunicazione, nel caso della scalabilità su colonne, le righe per ogni processore diminuiscono all'aumentare dei processori, ed aumentano il numero di colonne.  
+
+In entrambi i casi le size del problema rimangono invariate.  
+ 
+Si può affermare quindi che il programma in analisi a causa dell'overhead non scala in modo ottimale a partire da 4 processori.
+
+Da notare che lo speedup, scalando entrambe le dimensioni con il cluster diponibile con size *2000\*2000* e *P4* ***SS= (4,65\*4) / 4,73 = 3,92*** molto vicino allo speedup ideale, non è stato possibile verificare se la tendenza positiva possa continuare con *4000\*4000* e *16P*.  
+
 
 ## Esecuzione  ## 
+
+Per il testing si è utilizzato il docker disponibile [qui](https://hub.docker.com/r/spagnuolocarmine/docker-mpi)
+
+Per la build del docker : 
+
+```docker
+docker run -it --name mpi --cap-add=SYS_PTRACE --mount type=bind,source="$(pwd)"/[percorso da montare],target=/mpi  spagnuolocarmine/docker-mpi
+```
+
+Per la compilazione del sorgente eseguire il comando :  
+```
+mpicc game_of_life.c -o game_of_life
+```
+
+Per l'esecuzione :
+```
+mpirun --allow-run-as-root  -np [nProc] game_of_life -rows [nRighe] -cols [nColonne] -gen [nGen] -n [nStrutt] *[Output] *[Altro]
+```
+Esempio: 
+```
+mpirun --allow-run-as-root  -np 4 game_of_life -rows 20 -cols 20 -gen 100 -n 15 -a -c
+```
+
+**Parametri obbligatori :**
+
+- [nProc] : indica il numero di processori sulla quale eseguire il programma;
+- [nRighe] : indica il numero di righe della matrice; 
+- [nColonne] : indica il numero di colonne della matrice;
+- [nGen] : indica il numero di generazioni;
+- [nStrutt] : indica il numero di strutture da inserire (glider).
+
+Se non inseriti ulteriori [parametri](#parametri) viene stampato solo il tempo di esecuzione del programma parallelo.
+
+Per l'avvio su cluster è necessario specificare un *hfile* da inserire come parametro, dove vengono specificati gli ip e gli slot di computazione disponibili per il nodo.
+
+### Parametri ###
+
+È possibile aggiungere dei flag facoltativi per decidere l'output o altri comportamenti, di seguito i flag: 
+
+**Output :**
+
+- ***-p*** : stampa su prompt la matrice iniziale e la matrice finale con i tempi ottenuti; 
+- ***-h*** : stampa su un file in HTML la matrice iniziale e finale con i tempi di esecuzione;
+- ***-a*** : i risultati ottenuti vengono stampati su prompt e su file HTML.
+
+**Altro :**
+
+- ***-all*** : vengono stampate su console lo stato di avanzamento delle generazioni;
+- ***-c*** : viene eseguito un check sequenziale dando in output il tempo di esecuzione sequenziale e confrontando le due matrici di output.
+
+## Conclusioni ##
+
+Come analizzato precedentemente nei paragrafi sulla scalabilità [debole](#valutazioni-scalabilità-debole) e sulla scalabilità [forte](#valutazioni-scalabilità-forte), il programma presentato scala molto bene in termini di scalabilità forte, ed ha discreti risultati in termini di scalabilità debole.  
+
+Resta comunque come detto in precedenza da testare su un cluster di maggiore entità(16 processori) la scalabilità su entrambe le dimensioni della matrice, per verificare il trend positivo dimostrato su 4 processori.
+
+Il programma presentato durante la computazione delle generazioni mostra una singola sincronizzazione al termine di ogni generazione, non dovrebbe presentare un particolare problema, poichè essendo un cluster omogeneo ed avendo ogni processore la stessa size complessiva, ogni processore dovrebbe terminare la propria generazione quasi in contemporanea (a meno di comportamenti dello scheduler di sistema inaspettati).
+
+Il bilanciamento dei dati viene eseguito correttamente, lasciando per ogni processore la stessa size della matrice locale, avendo solo piccole differenze atte a gestire il resto eventuale.
+
+Tutti i processori del cluster partecipano alla computazione incluso il root.
