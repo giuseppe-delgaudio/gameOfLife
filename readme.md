@@ -2,7 +2,7 @@
 
 | Dati progetto di corso |                                    |
 | ---------------------- | ---------------------------------- |
-| Studente               | *GIUSEPPE DEL GAUDIO - 0522500914* |
+| Studente               | *GIUSEPPE DEL GAUDIO* |
 | Stringa MD5            | *d2400086940699c946c996399b11633a* |
 | Progetto di corso      | *Game Of Life [1] -d-*             |
 | Istanze Ec2            | *t2.small [1] -a-*                 |
